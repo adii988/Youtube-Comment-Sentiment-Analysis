@@ -25,7 +25,8 @@ stages:
       - src/features/feature_extraction.py
     outs:
       - data/processed
-      - models/tfidf_vectorizer.joblib
+      - tfidf_vectorizer.pkl
+      
 
   model_building:
     cmd: python -m src.model.model_building
@@ -53,15 +54,9 @@ stages:
     cmd: python -m src.model.model_evaluation
     deps:
       - models/lgbm_model.joblib
-      - models/tfidf_vectorizer.joblib
+      - tfidf_vectorizer.pkl
       - data/interim/test_processed.csv
       - src/model/model_evaluation.py
     outs:
       - reports/figures/confusion_matrix_Test_Data.png
-      - experiment_info.json
-
-  model_registration:
-    cmd: python -m src.model.register_model
-    deps:
-      - src/model/register_model.py
       - experiment_info.json

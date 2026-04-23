@@ -1,4 +1,4 @@
 [core]
     remote = myremote
 ['remote "myremote"']
-    url = C:\tmp
+    url = s3://ytca-dvc-bucket

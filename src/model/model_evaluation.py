@@ -57,7 +57,7 @@ def log_confusion_matrix(cm):
     plt.ylabel("Actual")
 
     plt.savefig(
-        "reports/confusion_matrix.png"
+        "reports/figures/confusion_matrix_Test_Data.png"
     )
 
     plt.close()

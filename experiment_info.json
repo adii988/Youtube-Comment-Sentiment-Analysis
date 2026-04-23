@@ -1,0 +1,5 @@
+{
+    "run_id": "d74e1b43fe7345328dc07b1b1c6f540b",
+    "model_path": "models/lgbm_model.joblib",
+    "vectorizer_path": "tfidf_vectorizer.pkl"
+}
