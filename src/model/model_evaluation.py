@@ -2,14 +2,12 @@ import numpy as np
 import pandas as pd
 import logging
 import mlflow
-import mlflow.sklearn
 import os
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 from sklearn.metrics import classification_report, confusion_matrix
-from mlflow.models.signature import infer_signature
 from dotenv import load_dotenv
 
 from src.utils import Logger, load_params, load_data, load_model
@@ -39,7 +37,7 @@ def evaluate_model(model, X_test, y_test):
 def log_confusion_matrix(cm):
 
     os.makedirs(
-        "reports",
+        "reports/figures",
         exist_ok=True
     )
 
@@ -98,6 +96,10 @@ def main():
             "DAGSHUB_PAT"
         )
 
+        mlflow.set_tracking_uri(
+            "http://13.51.166.199:5000"
+        )
+
         if dagshub_token:
             os.environ[
                 "MLFLOW_TRACKING_USERNAME"
@@ -106,10 +108,6 @@ def main():
             os.environ[
                 "MLFLOW_TRACKING_PASSWORD"
             ] = dagshub_token
-
-            mlflow.set_tracking_uri(
-                "http://13.51.166.199:5000"
-            )
 
         mlflow.set_experiment(
             "dvc-pipeline-runs"
@@ -134,8 +132,10 @@ def main():
         with mlflow.start_run() as run:
 
             mlflow.log_params(params)
-            
-            test_data["comment"] = test_data["comment"].fillna("").astype(str)
+
+            test_data["comment"] = test_data[
+                "comment"
+            ].fillna("").astype(str)
 
             test_tfidf = vectorizer.transform(
                 test_data["comment"]
@@ -164,10 +164,7 @@ def main():
 
             for label, metrics in report.items():
 
-                if isinstance(
-                    metrics,
-                    dict
-                ):
+                if isinstance(metrics, dict):
 
                     for metric_name, value in metrics.items():
 
@@ -179,18 +176,12 @@ def main():
             log_confusion_matrix(cm)
 
             mlflow.log_artifact(
-                "reports/confusion_matrix.png"
+                "reports/figures/confusion_matrix_Test_Data.png"
             )
 
-            signature = infer_signature(
-                X_test,
-                model.predict(X_test)
-            )
-
-            mlflow.sklearn.log_model(
-                model,
-                "lgbm_model",
-                signature=signature
+            # Save model as artifact instead of log_model
+            mlflow.log_artifact(
+                "models/lgbm_model.joblib"
             )
 
             save_model_info(
