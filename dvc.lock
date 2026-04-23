@@ -104,8 +104,8 @@ stages:
       size: 11474988
     - path: src/model/model_evaluation.py
       hash: md5
-      md5: 7c7548c938c47e87e7ea4bc5260f777c
-      size: 4484
+      md5: 7704c647a96db44130531c08b9b373e6
+      size: 4443
     - path: tfidf_vectorizer.pkl
       hash: md5
       md5: ad2b2daeb3bbbddc8fd51f72915a51d7
@@ -113,7 +113,7 @@ stages:
     outs:
     - path: experiment_info.json
       hash: md5
-      md5: bdf8b6b818590785dd9ec70e67ae5334
+      md5: 6b38c0bca18f332b76ffa260fa977826
       size: 149
     - path: reports/figures/confusion_matrix_Test_Data.png
       hash: md5

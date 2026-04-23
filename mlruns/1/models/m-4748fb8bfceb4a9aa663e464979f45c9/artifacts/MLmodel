@@ -1,0 +1,29 @@
+artifact_path: file:C:/Users/adina/Desktop/Youtube-Comment-Sentiment-Analysis/mlruns/1/models/m-4748fb8bfceb4a9aa663e464979f45c9/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.13.5
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+is_signature_from_type_hint: false
+mlflow_version: 3.11.1
+model_id: m-4748fb8bfceb4a9aa663e464979f45c9
+model_size_bytes: 11474890
+model_uuid: m-4748fb8bfceb4a9aa663e464979f45c9
+prompts: null
+run_id: ed4d79d937774c15a3161f3bf188bdd6
+signature:
+  inputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1, 9413]}}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-04-23 07:42:36.293990'

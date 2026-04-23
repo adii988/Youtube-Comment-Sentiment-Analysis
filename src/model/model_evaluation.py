@@ -108,7 +108,7 @@ def main():
             ] = dagshub_token
 
             mlflow.set_tracking_uri(
-                "https://dagshub.com/dakshvandanarathi/YT-Sentiment-Analyser.mlflow"
+                "http://13.51.166.199:5000"
             )
 
         mlflow.set_experiment(
