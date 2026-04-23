@@ -4,6 +4,7 @@ import logging
 import mlflow
 import os
 import json
+import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -65,8 +66,7 @@ def save_model_info(run_id):
 
     info = {
         "run_id": run_id,
-        "model_path": "models/lgbm_model.joblib",
-        "vectorizer_path": "tfidf_vectorizer.pkl"
+        "model_path": "lgbm_model/models/lgbm_model.joblib"
     }
 
     with open(
@@ -179,9 +179,14 @@ def main():
                 "reports/figures/confusion_matrix_Test_Data.png"
             )
 
-            # Save model as artifact instead of log_model
-            mlflow.log_artifact(
+            joblib.dump(
+                model,
                 "models/lgbm_model.joblib"
+            )
+
+            mlflow.log_artifact(
+                "models/lgbm_model.joblib",
+                artifact_path="lgbm_model/models"
             )
 
             save_model_info(

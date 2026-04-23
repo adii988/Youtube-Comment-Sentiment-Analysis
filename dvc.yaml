@@ -26,7 +26,6 @@ stages:
     outs:
       - data/processed
       - tfidf_vectorizer.pkl
-      
 
   model_building:
     cmd: python -m src.model.model_building
@@ -59,4 +58,10 @@ stages:
       - src/model/model_evaluation.py
     outs:
       - reports/figures/confusion_matrix_Test_Data.png
+      - experiment_info.json
+
+  model_registration:
+    cmd: python -m src.model.register_model
+    deps:
+      - src/model/register_model.py
       - experiment_info.json
