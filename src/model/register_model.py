@@ -1,111 +1,76 @@
+# register model
+
 import json
 import mlflow
 import logging
-from src.utils import Logger
 import os
-from dotenv import load_dotenv
 
-# Initialize Logger
-logger = Logger("register_model", logging.INFO)
+# Set up MLflow tracking URI
+mlflow.set_tracking_uri("http://13.51.166.199:5000")
 
+
+# logging configuration
+logger = logging.getLogger('model_registration')
+logger.setLevel('DEBUG')
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel('DEBUG')
+
+file_handler = logging.FileHandler('model_registration_errors.log')
+file_handler.setLevel('ERROR')
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
+
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
 
 def load_model_info(file_path: str) -> dict:
-
+    """Load the model info from a JSON file."""
     try:
-        with open(file_path, "r") as file:
+        with open(file_path, 'r') as file:
             model_info = json.load(file)
-
-        logger.info(
-            f"Model info loaded from {file_path}"
-        )
-
+        logger.debug('Model info loaded from %s', file_path)
         return model_info
-
+    except FileNotFoundError:
+        logger.error('File not found: %s', file_path)
+        raise
     except Exception as e:
-        logger.error(
-            f"Error loading model info: {e}"
-        )
+        logger.error('Unexpected error occurred while loading the model info: %s', e)
         raise
 
-
-def register_model(model_name: str, model_info: dict) -> None:
-
+def register_model(model_name: str, model_info: dict):
+    """Register the model to the MLflow Model Registry."""
     try:
-        # Only model register
-        model_uri = (
-            f"runs:/{model_info['run_id']}/"
-            f"{model_info['model_path']}"
-        )
-
-        model_version = mlflow.register_model(
-            model_uri,
-            model_name + "_lgbm_model"
-        )
-
+        model_uri = f"runs:/{model_info['run_id']}/{model_info['model_path']}"
+        
+        # Register the model
+        model_version = mlflow.register_model(model_uri, model_name)
+        
+        # Transition the model to "Staging" stage
         client = mlflow.tracking.MlflowClient()
-
         client.transition_model_version_stage(
-            name=model_name + "_lgbm_model",
+            name=model_name,
             version=model_version.version,
             stage="Staging"
         )
-
-        logger.info(
-            f"Model registered version "
-            f"{model_version.version}"
-        )
-
+        
+        logger.debug(f'Model {model_name} version {model_version.version} registered and transitioned to Staging.')
     except Exception as e:
-        logger.error(
-            f"Error during registration: {e}"
-        )
+        logger.error('Error during model registration: %s', e)
         raise
 
-
 def main():
-
     try:
-        if not os.getenv(
-            "GITHUB_ACTIONS"
-        ):
-            load_dotenv()
-
-        dagshub_token = os.getenv(
-            "DAGSHUB_PAT"
-        )
-
-        mlflow.set_tracking_uri(
-            "http://13.51.166.199:5000"
-        )
-
-        if dagshub_token:
-            os.environ[
-                "MLFLOW_TRACKING_USERNAME"
-            ] = dagshub_token
-
-            os.environ[
-                "MLFLOW_TRACKING_PASSWORD"
-            ] = dagshub_token
-
-        model_info = load_model_info(
-            "experiment_info.json"
-        )
-
-        register_model(
-            "sentiment_analysis",
-            model_info
-        )
-
-        logger.info(
-            "Model registration completed."
-        )
-
+        model_info_path = 'experiment_info.json'
+        model_info = load_model_info(model_info_path)
+        
+        model_name = "yt_chrome_plugin_model"
+        register_model(model_name, model_info)
     except Exception as e:
-        logger.error(
-            f"Failed registration process: {e}"
-        )
+        logger.error('Failed to complete the model registration process: %s', e)
         print(f"Error: {e}")
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -1,160 +1,334 @@
 import numpy as np
 import pandas as pd
+import pickle
 import logging
+import yaml
 import mlflow
+import mlflow.sklearn
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.feature_extraction.text import TfidfVectorizer
 import os
-import json
-import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
+from mlflow.models import infer_signature
 
-from sklearn.metrics import classification_report, confusion_matrix
-from dotenv import load_dotenv
+# logging configuration
+logger = logging.getLogger('model_evaluation')
+logger.setLevel('DEBUG')
 
-from src.utils import Logger, load_params, load_data, load_model
+console_handler = logging.StreamHandler()
+console_handler.setLevel('DEBUG')
 
+file_handler = logging.FileHandler('model_evaluation_errors.log')
+file_handler.setLevel('ERROR')
 
-logger = Logger("model_evaluation", logging.INFO)
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
+console_handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
 
-def evaluate_model(model, X_test, y_test):
-
-    y_pred = model.predict(X_test)
-
-    report = classification_report(
-        y_test,
-        y_pred,
-        output_dict=True
-    )
-
-    cm = confusion_matrix(
-        y_test,
-        y_pred
-    )
-
-    return report, cm
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
 
 
-def log_confusion_matrix(cm):
+def load_data(file_path: str) -> pd.DataFrame:
 
-    os.makedirs(
-        "reports/figures",
-        exist_ok=True
-    )
+    try:
+        df = pd.read_csv(file_path)
+        df.fillna('', inplace=True)
+        logger.debug(
+            'Data loaded and NaNs filled from %s',
+            file_path
+        )
+        return df
+
+    except Exception as e:
+        logger.error(
+            'Error loading data from %s: %s',
+            file_path, e
+        )
+        raise
+
+
+def load_model(model_path: str):
+
+    try:
+        with open(model_path, 'rb') as file:
+            model = pickle.load(file)
+
+        logger.debug(
+            'Model loaded from %s',
+            model_path
+        )
+
+        return model
+
+    except Exception as e:
+        logger.error(
+            'Error loading model from %s: %s',
+            model_path, e
+        )
+        raise
+
+
+def load_vectorizer(
+    vectorizer_path: str
+) -> TfidfVectorizer:
+
+    try:
+        with open(
+            vectorizer_path,
+            'rb'
+        ) as file:
+            vectorizer = pickle.load(file)
+
+        logger.debug(
+            'TF-IDF vectorizer loaded from %s',
+            vectorizer_path
+        )
+
+        return vectorizer
+
+    except Exception as e:
+        logger.error(
+            'Error loading vectorizer from %s: %s',
+            vectorizer_path, e
+        )
+        raise
+
+
+def load_params(params_path: str) -> dict:
+
+    try:
+        with open(params_path, 'r') as file:
+            params = yaml.safe_load(file)
+
+        logger.debug(
+            'Parameters loaded from %s',
+            params_path
+        )
+
+        return params
+
+    except Exception as e:
+        logger.error(
+            'Error loading parameters from %s: %s',
+            params_path, e
+        )
+        raise
+
+
+def evaluate_model(
+    model,
+    X_test,
+    y_test
+):
+
+    try:
+        y_pred = model.predict(X_test)
+
+        report = classification_report(
+            y_test,
+            y_pred,
+            output_dict=True
+        )
+
+        cm = confusion_matrix(
+            y_test,
+            y_pred
+        )
+
+        logger.debug(
+            'Model evaluation completed'
+        )
+
+        return report, cm
+
+    except Exception as e:
+        logger.error(
+            'Error during model evaluation: %s',
+            e
+        )
+        raise
+
+
+def log_confusion_matrix(
+    cm,
+    dataset_name
+):
 
     plt.figure(figsize=(8, 6))
 
     sns.heatmap(
         cm,
         annot=True,
-        fmt="d",
-        cmap="Blues"
+        fmt='d',
+        cmap='Blues'
     )
 
-    plt.title("Confusion Matrix")
-    plt.xlabel("Predicted")
-    plt.ylabel("Actual")
+    plt.title(
+        f'Confusion Matrix for {dataset_name}'
+    )
 
-    plt.savefig(
-        "reports/figures/confusion_matrix_Test_Data.png"
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+
+    cm_file_path = (
+        f'confusion_matrix_{dataset_name}.png'
+    )
+
+    plt.savefig(cm_file_path)
+
+    mlflow.log_artifact(
+        cm_file_path
     )
 
     plt.close()
 
 
-def save_model_info(run_id):
+def save_model_info(
+    run_id: str,
+    model_path: str,
+    file_path: str
+) -> None:
 
-    info = {
-        "run_id": run_id,
-        "model_path": "lgbm_model/models/lgbm_model.joblib"
-    }
+    try:
+        model_info = {
+            'run_id': run_id,
+            'model_path': model_path
+        }
 
-    with open(
-        "experiment_info.json",
-        "w"
-    ) as file:
-        json.dump(
-            info,
-            file,
-            indent=4
+        with open(file_path, 'w') as file:
+            json.dump(
+                model_info,
+                file,
+                indent=4
+            )
+
+        logger.debug(
+            'Model info saved to %s',
+            file_path
         )
+
+    except Exception as e:
+        logger.error(
+            'Error saving model info: %s',
+            e
+        )
+        raise
 
 
 def main():
 
-    try:
-        logger.info(
-            "Starting model evaluation..."
-        )
+    mlflow.set_tracking_uri(
+        "http://13.51.166.199:5000"
+    )
 
-        if not os.getenv(
-            "GITHUB_ACTIONS"
-        ):
-            load_dotenv()
+    mlflow.set_experiment(
+        'dvc-pipeline-runs'
+    )
 
-        dagshub_token = os.getenv(
-            "DAGSHUB_PAT"
-        )
+    with mlflow.start_run() as run:
 
-        mlflow.set_tracking_uri(
-            "http://13.51.166.199:5000"
-        )
+        try:
+            root_dir = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    '../../'
+                )
+            )
 
-        if dagshub_token:
-            os.environ[
-                "MLFLOW_TRACKING_USERNAME"
-            ] = dagshub_token
+            params = load_params(
+                os.path.join(
+                    root_dir,
+                    'params.yaml'
+                )
+            )
 
-            os.environ[
-                "MLFLOW_TRACKING_PASSWORD"
-            ] = dagshub_token
+            for key, value in params.items():
+                mlflow.log_param(
+                    key,
+                    value
+                )
 
-        mlflow.set_experiment(
-            "dvc-pipeline-runs"
-        )
+            model = load_model(
+                os.path.join(
+                    root_dir,
+                    'lgbm_model.pkl'
+                )
+            )
 
-        params = load_params(
-            "params.yaml"
-        )
+            vectorizer = load_vectorizer(
+                os.path.join(
+                    root_dir,
+                    'tfidf_vectorizer.pkl'
+                )
+            )
 
-        model = load_model(
-            "models/lgbm_model.joblib"
-        )
+            test_data = load_data(
+                os.path.join(
+                    root_dir,
+                    'data/interim/test_processed.csv'
+                )
+            )
 
-        vectorizer = load_model(
-            "tfidf_vectorizer.pkl"
-        )
-
-        test_data = load_data(
-            "data/interim/test_processed.csv"
-        )
-
-        with mlflow.start_run() as run:
-
-            mlflow.log_params(params)
-
-            test_data["comment"] = test_data[
-                "comment"
-            ].fillna("").astype(str)
-
-            test_tfidf = vectorizer.transform(
-                test_data["comment"]
+            # TFIDF Features
+            X_test_tfidf = vectorizer.transform(
+                test_data['comment'].values
             ).toarray()
 
-            X_test = np.hstack([
-                test_tfidf,
-                test_data[
-                    [
-                        "word_count",
-                        "char_count",
-                        "avg_word_length"
-                    ]
-                ].values
-            ])
+            # Extra Numeric Features
+            extra_features = test_data[
+                [
+                    'word_count',
+                    'char_count',
+                    'avg_word_length'
+                ]
+            ].values
+
+            # Final Combined Features
+            X_test = np.hstack(
+                (
+                    X_test_tfidf,
+                    extra_features
+                )
+            )
 
             y_test = test_data[
-                "category"
+                'category'
             ].values
+
+            input_example = pd.DataFrame(
+                X_test[:5]
+            )
+
+            signature = infer_signature(
+                input_example,
+                model.predict(X_test[:5])
+            )
+
+            mlflow.sklearn.log_model(
+                model,
+                "lgbm_model",
+                signature=signature,
+                input_example=input_example
+            )
+
+            save_model_info(
+                run.info.run_id,
+                "lgbm_model",
+                "experiment_info.json"
+            )
+
+            mlflow.log_artifact(
+                os.path.join(
+                    root_dir,
+                    'tfidf_vectorizer.pkl'
+                )
+            )
 
             report, cm = evaluate_model(
                 model,
@@ -164,43 +338,49 @@ def main():
 
             for label, metrics in report.items():
 
-                if isinstance(metrics, dict):
+                if isinstance(
+                    metrics,
+                    dict
+                ):
 
-                    for metric_name, value in metrics.items():
+                    mlflow.log_metrics({
+                        f"test_{label}_precision":
+                        metrics['precision'],
 
-                        mlflow.log_metric(
-                            f"{label}_{metric_name}",
-                            value
-                        )
+                        f"test_{label}_recall":
+                        metrics['recall'],
 
-            log_confusion_matrix(cm)
+                        f"test_{label}_f1-score":
+                        metrics['f1-score']
+                    })
 
-            mlflow.log_artifact(
-                "reports/figures/confusion_matrix_Test_Data.png"
+            log_confusion_matrix(
+                cm,
+                "Test Data"
             )
 
-            joblib.dump(
-                model,
-                "models/lgbm_model.joblib"
+            mlflow.set_tag(
+                "model_type",
+                "LightGBM"
             )
 
-            mlflow.log_artifact(
-                "models/lgbm_model.joblib",
-                artifact_path="lgbm_model/models"
+            mlflow.set_tag(
+                "task",
+                "Sentiment Analysis"
             )
 
-            save_model_info(
-                run.info.run_id
+            mlflow.set_tag(
+                "dataset",
+                "YouTube Comments"
             )
 
-        logger.info(
-            "Model evaluation completed."
-        )
+        except Exception as e:
+            logger.error(
+                f"Failed to complete model evaluation: {e}"
+            )
 
-    except Exception as e:
-        logger.critical(str(e))
-        raise e
+            print(f"Error: {e}")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

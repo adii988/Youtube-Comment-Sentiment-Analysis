@@ -1,7 +1,7 @@
 import logging
 import lightgbm as lgb
 import pandas as pd
-import joblib
+import pickle
 import os
 
 from typing import Dict, Tuple
@@ -19,7 +19,8 @@ def save_model(model, path):
     if folder != "":
         os.makedirs(folder, exist_ok=True)
 
-    joblib.dump(model, path)
+    with open(path, "wb") as file:
+        pickle.dump(model, file)
 
 
 def prepare_training_data(
@@ -87,7 +88,7 @@ def main():
 
         save_model(
             model,
-            "models/lgbm_model.joblib"
+            "lgbm_model.pkl"
         )
 
         logger.info(
