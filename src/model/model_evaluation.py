@@ -176,15 +176,15 @@ def log_confusion_matrix(
     plt.xlabel('Predicted')
     plt.ylabel('Actual')
 
+    os.makedirs("reports/figures", exist_ok=True)
+
     cm_file_path = (
-        f'confusion_matrix_{dataset_name}.png'
+        f'reports/figures/confusion_matrix_{dataset_name.replace(" ", "_")}.png'
     )
 
     plt.savefig(cm_file_path)
 
-    mlflow.log_artifact(
-        cm_file_path
-    )
+    mlflow.log_artifact(cm_file_path)
 
     plt.close()
 
