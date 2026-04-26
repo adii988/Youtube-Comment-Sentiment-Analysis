@@ -1,5 +1,5 @@
 Youtube-Comment-Sentiment-Analysis
-==============================
+============================== 
 
 A small chrome plugin to detect youtube comment setiments
 
