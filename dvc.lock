@@ -57,7 +57,7 @@ stages:
       nfiles: 2
     - path: tfidf_vectorizer.pkl
       hash: md5
-      md5: 9bb0308efa46a15349126f1eda2c2094
+      md5: 0938adf28de6dd86b7aeb18a84947b47
       size: 356524
   model_building:
     cmd: python -m src.model.model_building
@@ -108,12 +108,12 @@ stages:
       size: 8083
     - path: tfidf_vectorizer.pkl
       hash: md5
-      md5: 9bb0308efa46a15349126f1eda2c2094
+      md5: 0938adf28de6dd86b7aeb18a84947b47
       size: 356524
     outs:
     - path: experiment_info.json
       hash: md5
-      md5: a00170c0578d516e1a0077efaf6bca51
+      md5: fc2eedcdfec280b2ddf1680425ac6993
       size: 84
     - path: reports/figures/confusion_matrix_Test_Data.png
       hash: md5
@@ -124,7 +124,7 @@ stages:
     deps:
     - path: experiment_info.json
       hash: md5
-      md5: a00170c0578d516e1a0077efaf6bca51
+      md5: fc2eedcdfec280b2ddf1680425ac6993
       size: 84
     - path: src/model/register_model.py
       hash: md5
