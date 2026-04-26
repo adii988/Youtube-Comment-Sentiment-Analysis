@@ -107,7 +107,7 @@ jobs:
           aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set default.region eu-north-1
-          aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 390844758498.dkr.ecr.us-east-1.amazonaws.com
+          aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin 985539756441.dkr.ecr.eu-north-1.amazonaws.com
 
       - name: Build Docker image
         if: success()
@@ -117,12 +117,12 @@ jobs:
       - name: Tag Docker image
         if: success()
         run: |
-          docker tag yt-chrome-plugin:latest 390844758498.dkr.ecr.us-east-1.amazonaws.com/yt-chrome-plugin:latest
+          docker tag yt-chrome-plugin:latest 985539756441.dkr.ecr.eu-north-1.amazonaws.com/yt-chrome-plugin:latest
 
       - name: Push Docker image to AWS ECR
         if: success()
         run: |
-          docker push 390844758498.dkr.ecr.us-east-1.amazonaws.com/yt-chrome-plugin:latest
+          docker push 985539756441.dkr.ecr.eu-north-1.amazonaws.com/yt-chrome-plugin:latest
 
       - name: Zip files for deployment
         if: success()
@@ -132,7 +132,7 @@ jobs:
       - name: Upload ZIP to S3
         if: success()
         run: |
-          aws s3 cp deployment.zip s3://campusxcodedeploybucket/deployment.zip --region us-east-1
+          aws s3 cp deployment.zip s3://adinath-mlfow-bucket/deployment.zip --region eu-north-1
 
       - name: Deploy to AWS CodeDeploy
         if: success()
