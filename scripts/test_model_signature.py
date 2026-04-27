@@ -33,9 +33,9 @@ def test_model_with_vectorizer(model_name, stage, vectorizer_path):
             vectorizer = pickle.load(file)
 
         # Create a dummy input for the model
-        input_text = "hi how are you"
-        input_data = vectorizer.transform([input_text])
-        input_df = pd.DataFrame(input_data.toarray())  # <-- Use correct feature names
+        n_features = len(model.metadata.signature.inputs.inputs)
+        input_df = pd.DataFrame([[0.0] * n_features])
+           # <-- Use correct feature names
 
         # Predict using the model
         prediction = model.predict(input_df)
