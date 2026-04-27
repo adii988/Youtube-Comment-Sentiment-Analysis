@@ -1,52 +1,108 @@
+# # def test_model_signature():
+# #     assert True
+
+
+# import mlflow
+# import pytest
+# import pandas as pd
+# import pickle
+# from mlflow.tracking import MlflowClient
+
+# # Set your remote tracking URI
+# mlflow.set_tracking_uri("http://13.51.166.199:5000")
+
+# @pytest.mark.parametrize("model_name, stage, vectorizer_path", [
+#     ("yt_chrome_plugin_model", "staging", "tfidf_vectorizer.pkl"),  # Replace with your actual model name and vectorizer path
+# ])
+# def test_model_with_vectorizer(model_name, stage, vectorizer_path):
+#     client = MlflowClient()
+
+#     # Get the latest version in the specified stage
+#     latest_version_info = client.get_latest_versions(model_name, stages=[stage])
+#     latest_version = latest_version_info[0].version if latest_version_info else None
+
+#     assert latest_version is not None, f"No model found in the '{stage}' stage for '{model_name}'"
+
+#     try:
+#         # Load the latest version of the model
+#         model_uri = f"models:/{model_name}/{latest_version}"
+#         model = mlflow.pyfunc.load_model(model_uri)
+
+#         # Load the vectorizer
+#         with open(vectorizer_path, 'rb') as file:
+#             vectorizer = pickle.load(file)
+
+#         # Create a dummy input for the model
+#         n_features = len(model.metadata.signature.inputs.inputs)
+#         input_df = pd.DataFrame([[0.0] * n_features])
+#            # <-- Use correct feature names
+
+#         # Predict using the model
+#         prediction = model.predict(input_df)
+
+#         # Verify the input shape matches the vectorizer's feature output
+#         assert input_df.shape[1] == len(vectorizer.get_feature_names_out()), "Input feature count mismatch"
+
+#         # Verify the output shape (assuming binary classification with a single output)
+#         assert len(prediction) == input_df.shape[0], "Output row count mismatch"
+
+#         print(f"Model '{model_name}' version {latest_version} successfully processed the dummy input.")
+
+#     except Exception as e:
+#         pytest.fail(f"Model test failed with error: {e}")
+
+
 # def test_model_signature():
 #     assert True
-
 
 import mlflow
 import pytest
 import pandas as pd
-import pickle
 from mlflow.tracking import MlflowClient
 
-# Set your remote tracking URI
+# Set remote MLflow tracking URI
 mlflow.set_tracking_uri("http://13.51.166.199:5000")
 
-@pytest.mark.parametrize("model_name, stage, vectorizer_path", [
-    ("yt_chrome_plugin_model", "staging", "tfidf_vectorizer.pkl"),  # Replace with your actual model name and vectorizer path
+
+@pytest.mark.parametrize("model_name, stage", [
+    ("yt_chrome_plugin_model", "staging"),
 ])
-def test_model_with_vectorizer(model_name, stage, vectorizer_path):
+def test_model_with_signature(model_name, stage):
     client = MlflowClient()
 
-    # Get the latest version in the specified stage
+    # Get latest model version in given stage
     latest_version_info = client.get_latest_versions(model_name, stages=[stage])
     latest_version = latest_version_info[0].version if latest_version_info else None
 
-    assert latest_version is not None, f"No model found in the '{stage}' stage for '{model_name}'"
+    assert latest_version is not None, \
+        f"No model found in stage '{stage}' for '{model_name}'"
 
     try:
-        # Load the latest version of the model
+        # Load model
         model_uri = f"models:/{model_name}/{latest_version}"
         model = mlflow.pyfunc.load_model(model_uri)
 
-        # Load the vectorizer
-        with open(vectorizer_path, 'rb') as file:
-            vectorizer = pickle.load(file)
-
-        # Create a dummy input for the model
+        # Read feature count directly from model signature
         n_features = len(model.metadata.signature.inputs.inputs)
-        input_df = pd.DataFrame([[0.0] * n_features])
-           # <-- Use correct feature names
 
-        # Predict using the model
+        # Create dummy input with exact feature count
+        input_df = pd.DataFrame([[0.0] * n_features])
+
+        # Run prediction
         prediction = model.predict(input_df)
 
-        # Verify the input shape matches the vectorizer's feature output
-        assert input_df.shape[1] == len(vectorizer.get_feature_names_out()), "Input feature count mismatch"
+        # Validate input shape
+        assert input_df.shape[1] == n_features, \
+            "Feature count mismatch"
 
-        # Verify the output shape (assuming binary classification with a single output)
-        assert len(prediction) == input_df.shape[0], "Output row count mismatch"
+        # Validate prediction rows
+        assert len(prediction) == input_df.shape[0], \
+            "Prediction output row mismatch"
 
-        print(f"Model '{model_name}' version {latest_version} successfully processed the dummy input.")
+        print(
+            f"Model '{model_name}' version {latest_version} "
+            f"loaded successfully with {n_features} features."
+        )
 
     except Exception as e:
         pytest.fail(f"Model test failed with error: {e}")
