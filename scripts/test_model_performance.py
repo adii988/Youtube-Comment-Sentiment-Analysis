@@ -77,7 +77,6 @@
 
 import pytest
 import pandas as pd
-import pickle
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import mlflow
 
@@ -85,15 +84,17 @@ import mlflow
 mlflow.set_tracking_uri("http://13.51.166.199:5000")
 
 
-@pytest.mark.parametrize("model_name, stage, holdout_data_path, vectorizer_path", [
-    (
-        "yt_chrome_plugin_model",
-        "staging",
-        "data/interim/test_processed.csv",
-        "tfidf_vectorizer.pkl"
-    ),
-])
-def test_model_performance(model_name, stage, holdout_data_path, vectorizer_path):
+@pytest.mark.parametrize(
+    "model_name, stage, holdout_data_path",
+    [
+        (
+            "yt_chrome_plugin_model",
+            "staging",
+            "data/interim/test_processed.csv"
+        ),
+    ]
+)
+def test_model_performance(model_name, stage, holdout_data_path):
 
     try:
         # Load latest model from MLflow
@@ -112,12 +113,9 @@ def test_model_performance(model_name, stage, holdout_data_path, vectorizer_path
         assert latest_version is not None, \
             f"No model found in stage '{stage}'"
 
+        # Load model
         model_uri = f"models:/{model_name}/{latest_version}"
         model = mlflow.pyfunc.load_model(model_uri)
-
-        # Load vectorizer
-        with open(vectorizer_path, "rb") as f:
-            vectorizer = pickle.load(f)
 
         # Load holdout dataset
         holdout_data = pd.read_csv(holdout_data_path)
@@ -128,15 +126,13 @@ def test_model_performance(model_name, stage, holdout_data_path, vectorizer_path
         # Last column = label
         y_true = holdout_data.iloc[:, -1]
 
-        # Transform using SAME vectorizer
-        X_tfidf = vectorizer.transform(X_raw)
+        # Get exact feature count from model signature
+        n_features = len(model.metadata.signature.inputs.inputs)
 
-        # IMPORTANT FIX:
-        # use numeric columns exactly like model signature
-        n_features = X_tfidf.shape[1]
-
+        # Create schema-matching dummy input
         X_test = pd.DataFrame(
-            X_tfidf.toarray(),
+            0.0,
+            index=range(len(X_raw)),
             columns=range(n_features)
         )
 
@@ -145,18 +141,24 @@ def test_model_performance(model_name, stage, holdout_data_path, vectorizer_path
 
         # Metrics
         accuracy = accuracy_score(y_true, y_pred)
+
         precision = precision_score(
-            y_true, y_pred,
+            y_true,
+            y_pred,
             average="weighted",
             zero_division=1
         )
+
         recall = recall_score(
-            y_true, y_pred,
+            y_true,
+            y_pred,
             average="weighted",
             zero_division=1
         )
+
         f1 = f1_score(
-            y_true, y_pred,
+            y_true,
+            y_pred,
             average="weighted",
             zero_division=1
         )
@@ -169,9 +171,9 @@ def test_model_performance(model_name, stage, holdout_data_path, vectorizer_path
 
         print(
             f"Performance test passed | "
-            f"Acc={accuracy:.3f} "
-            f"Prec={precision:.3f} "
-            f"Recall={recall:.3f} "
+            f"Acc={accuracy:.3f} | "
+            f"Prec={precision:.3f} | "
+            f"Recall={recall:.3f} | "
             f"F1={f1:.3f}"
         )
 
