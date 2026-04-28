@@ -1,10 +1,10 @@
 Youtube-Comment-Sentiment-Analysis
 ==============================   
 
-A small chrome plugin to detect youtube comment setiments
+A small chrome plugin to detect youtube comment setiments    
 
 Project Organization
-------------
+-----------
 
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
